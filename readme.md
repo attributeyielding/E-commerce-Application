@@ -64,3 +64,22 @@ GET /orders: Retrieve a list of the current user's orders.
 GET /orders/:id: Retrieve a single order by ID.
 POST /orders: Create a new order.
 For detailed request and response formats, refer to
+
+Key Features:
+Authentication:
+
+/auth/register for user registration.
+/auth/login for login and token generation.
+User Routes:
+
+/users/me to fetch user profile (requires authentication).
+Product and Cart Routes:
+
+/products to get all products.
+/cart to manage user's cart.
+Order Management:
+
+/orders to get user's orders.
+Swagger Documentation:
+
+Accessible at /api-docs.
