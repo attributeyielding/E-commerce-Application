@@ -161,6 +161,227 @@
 <h2 id="ytoyjie">License</h2>
 <p id="2ihn0ps">This project is licensed under the <strong>MIT License</strong>. See the <a href="https://chat.deepseek.com/a/chat/s/LICENSE" target="_blank" rel="noreferrer" id="pqxtzb">LICENSE</a> file for details.</p>
 <h2 id="tepifvv">Acknowledgments</h2>
+
+# E-commerce Database Schema
+
+## Overview
+
+This database schema is designed for an e-commerce platform, providing a robust structure for managing users, products, orders, payments, and more. It is built with scalability, data integrity, and security in mind, ensuring a reliable foundation for an online store.
+
+---
+
+## Table Structure
+
+### 1. **Users**
+Stores user information, including personal details and authentication data.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `user_id`        | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the user.      |
+| `first_name`     | VARCHAR(50)     | NOT NULL                             | User's first name.                   |
+| `last_name`      | VARCHAR(50)     | NOT NULL                             | User's last name.                    |
+| `email`          | VARCHAR(100)    | UNIQUE, NOT NULL, CHECK (email LIKE '%_@__%.__%') | Valid email address. |
+| `password_hash`  | VARCHAR(255)    | NOT NULL                             | Securely hashed password.            |
+| `phone_number`   | VARCHAR(15)     | CHECK (phone_number ~ '^[+]?[0-9]{7,15}$') | Valid phone number. |
+| `address`        | TEXT            |                                      | User's address.                      |
+| `created_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of user creation.          |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+| `deleted_at`     | TIMESTAMP       | NULL                                 | Timestamp for soft deletion.         |
+
+---
+
+### 2. **Categories**
+Manages product categories, including hierarchical relationships.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `category_id`    | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the category.  |
+| `name`           | VARCHAR(100)    | NOT NULL                             | Name of the category.                |
+| `description`    | TEXT            |                                      | Description of the category.         |
+| `parent_id`      | CHAR(36)        | FOREIGN KEY REFERENCES Categories(category_id) ON DELETE SET NULL | Parent category ID for hierarchy. |
+| `hierarchy_depth`| INT             | DEFAULT 0                            | Depth of the category in the hierarchy. |
+| `created_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of category creation.      |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+
+---
+
+### 3. **Products**
+Stores product details, including pricing, inventory, and categorization.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `product_id`     | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the product.   |
+| `name`           | VARCHAR(150)    | NOT NULL                             | Name of the product.                 |
+| `description`    | TEXT            |                                      | Description of the product.          |
+| `sku`            | VARCHAR(50)     | UNIQUE, NOT NULL                     | Stock Keeping Unit for inventory.    |
+| `price`          | DECIMAL(10, 2)  | NOT NULL, CHECK (price >= 0)         | Price of the product.                |
+| `stock`          | INT             | DEFAULT 0, CHECK (stock >= 0)        | Available stock quantity.            |
+| `category_id`    | CHAR(36)        | FOREIGN KEY REFERENCES Categories(category_id) ON DELETE SET NULL | Associated category ID. |
+| `is_active`      | BOOLEAN         | DEFAULT TRUE                         | Indicates if the product is active.  |
+| `image_url`      | TEXT            | CHECK (image_url LIKE 'http%')       | URL of the product image.            |
+| `created_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of product creation.       |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+| `deleted_at`     | TIMESTAMP       | NULL                                 | Timestamp for soft deletion.         |
+
+---
+
+### 4. **Orders**
+Tracks customer orders, including status and shipping details.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `order_id`       | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the order.     |
+| `user_id`        | CHAR(36)        | FOREIGN KEY REFERENCES Users(user_id) ON DELETE CASCADE | Associated user ID. |
+| `status`         | ENUM            | DEFAULT 'Pending'                    | Order status (Pending, Shipped, Delivered, Cancelled). |
+| `total_price`    | DECIMAL(10, 2)  | NOT NULL, CHECK (total_price >= 0)   | Total price of the order.            |
+| `tax_amount`     | DECIMAL(10, 2)  | DEFAULT 0.00, CHECK (tax_amount >= 0)| Tax amount for the order.            |
+| `tracking_number`| VARCHAR(100)    |                                      | Shipment tracking number.            |
+| `carrier_name`   | VARCHAR(50)     |                                      | Name of the shipping carrier.        |
+| `created_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of order creation.         |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+| `deleted_at`     | TIMESTAMP       | NULL                                 | Timestamp for soft deletion.         |
+
+---
+
+### 5. **OrderDetails**
+Stores details of products included in each order.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `order_detail_id`| CHAR(36)        | PRIMARY KEY                          | Unique identifier for the order detail. |
+| `order_id`       | CHAR(36)        | FOREIGN KEY REFERENCES Orders(order_id) ON DELETE CASCADE | Associated order ID. |
+| `product_id`     | CHAR(36)        | FOREIGN KEY REFERENCES Products(product_id) ON DELETE CASCADE | Associated product ID. |
+| `quantity`       | INT             | NOT NULL, CHECK (quantity > 0)       | Quantity of the product in the order. |
+| `price`          | DECIMAL(10, 2)  | NOT NULL, CHECK (price >= 0)         | Price of the product at the time of purchase. |
+| `discount`       | DECIMAL(10, 2)  | DEFAULT 0.00, CHECK (discount >= 0)  | Discount applied to the product.     |
+| `subtotal`       | DECIMAL(10, 2)  | GENERATED ALWAYS AS (quantity * price - discount) STORED | Calculated subtotal. |
+
+---
+
+### 6. **Reviews**
+Manages product reviews submitted by users.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `review_id`      | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the review.    |
+| `user_id`        | CHAR(36)        | FOREIGN KEY REFERENCES Users(user_id) ON DELETE CASCADE | Associated user ID. |
+| `product_id`     | CHAR(36)        | FOREIGN KEY REFERENCES Products(product_id) ON DELETE CASCADE | Associated product ID. |
+| `rating`         | INT             | CHECK (rating BETWEEN 1 AND 5)       | Rating given by the user (1-5).      |
+| `comment`        | TEXT            |                                      | Review comment.                      |
+| `is_approved`    | BOOLEAN         | DEFAULT FALSE                        | Indicates if the review is approved. |
+| `approved_by`    | CHAR(36)        |                                      | Moderator who approved the review.   |
+| `created_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of review creation.        |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+
+---
+
+### 7. **Cart**
+Manages user shopping carts.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `cart_id`        | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the cart.      |
+| `user_id`        | CHAR(36)        | FOREIGN KEY REFERENCES Users(user_id) ON DELETE CASCADE | Associated user ID. |
+| `product_id`     | CHAR(36)        | FOREIGN KEY REFERENCES Products(product_id) ON DELETE CASCADE | Associated product ID. |
+| `quantity`       | INT             | DEFAULT 1, CHECK (quantity > 0)      | Quantity of the product in the cart. |
+| `added_at`       | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of product addition.       |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+| `session_id`     | CHAR(36)        |                                      | Session ID for guest carts.          |
+
+---
+
+### 8. **Payments**
+Tracks payment transactions for orders.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `payment_id`     | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the payment.   |
+| `order_id`       | CHAR(36)        | FOREIGN KEY REFERENCES Orders(order_id) ON DELETE CASCADE | Associated order ID. |
+| `payment_method` | ENUM            |                                      | Payment method (Credit Card, Debit Card, PayPal, Bank Transfer). |
+| `payment_status` | ENUM            | DEFAULT 'Pending'                    | Payment status (Pending, Completed, Failed). |
+| `transaction_id` | VARCHAR(255)    |                                      | Transaction ID from the payment gateway. |
+| `amount`         | DECIMAL(10, 2)  | NOT NULL, CHECK (amount >= 0)        | Payment amount.                      |
+| `currency`       | VARCHAR(10)     | DEFAULT 'USD'                        | Currency of the payment.             |
+| `is_refunded`    | BOOLEAN         | DEFAULT FALSE                        | Indicates if the payment is refunded. |
+| `refund_amount`  | DECIMAL(10, 2)  | DEFAULT 0.00, CHECK (refund_amount >= 0) | Refund amount.                   |
+| `payment_date`   | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of the payment.            |
+| `error_message`  | TEXT            |                                      | Error message if payment fails.      |
+
+---
+
+### 9. **Wishlist**
+Manages user wishlists, including sharing capabilities.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `wishlist_id`    | CHAR(36)        | PRIMARY KEY                          | Unique identifier for the wishlist.  |
+| `user_id`        | CHAR(36)        | FOREIGN KEY REFERENCES Users(user_id) ON DELETE CASCADE | Associated user ID. |
+| `product_id`     | CHAR(36)        | FOREIGN KEY REFERENCES Products(product_id) ON DELETE CASCADE | Associated product ID. |
+| `notes`          | TEXT            |                                      | Notes added by the user.             |
+| `shared_with`    | JSON            |                                      | List of users the wishlist is shared with. |
+| `added_at`       | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP            | Timestamp of product addition.       |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+
+---
+
+### 10. **Currencies**
+Manages currency conversion rates.
+
+| Column Name      | Data Type       | Constraints                          | Description                          |
+|------------------|-----------------|--------------------------------------|--------------------------------------|
+| `currency_code`  | VARCHAR(10)     | PRIMARY KEY                          | Currency code (e.g., USD, EUR).      |
+| `currency_name`  | VARCHAR(50)     |                                      | Name of the currency.                |
+| `conversion_rate`| DECIMAL(10, 6)  | NOT NULL                             | Conversion rate to a base currency.  |
+| `rate_effective_date` | DATE      | NOT NULL                             | Date when the rate is effective.     |
+| `updated_at`     | TIMESTAMP       | DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP | Last update timestamp. |
+
+---
+
+## Indexes
+
+Indexes are created on frequently queried columns to improve performance:
+
+- `idx_users_email` on `Users(email)`
+- `idx_products_name` on `Products(name)`
+- `idx_categories_name` on `Categories(name)`
+- `idx_orders_created_at` on `Orders(created_at)`
+- `idx_orderdetails_order_id` on `OrderDetails(order_id)`
+- `idx_cart_user_id` on `Cart(user_id)`
+
+---
+
+## Usage
+
+### Example Queries
+
+1. **Get all active products in a category:**
+
+   ```sql
+   SELECT * FROM Products
+   WHERE category_id = 'category_uuid' AND is_active = TRUE; ```
+
+<ol start="2" id="d7zy1">
+<li id="508tivf">
+<h3 id="ckel6b"><strong>Get all orders for a user:</strong></h3>
+<pre id="bfjh82"><span id="a1f9tq9">SELECT</span> <span id="6rndpep">*</span> <span id="rfv6o6y">FROM</span> Orders
+<span id="64p204k">WHERE</span> user_id <span id="oul437">=</span> <span id="09io6hn">'user_uuid'</span><span id="o4yjvoj">;</span></pre>
+</li>
+<li id="f8zxv2">
+<h3 id="jdm76xq"><strong>Calculate total sales for a product:</strong></h3>
+<pre id="01sbygg"><span id="aouh7tm">SELECT</span> <span id="bs3almw">SUM</span><span id="jt7cwee">(</span>subtotal<span id="jtejbwvf">)</span> <span id="0nfic5k">AS</span> total_sales
+<span id="xpy6sdg">FROM</span> OrderDetails
+<span id="yqrm0t9">WHERE</span> product_id <span id="jilxxgp">=</span> <span id="tzd2qvw">'product_uuid'</span><span id="35mcip5">;</span></pre>
+</li>
+</ol>
+<hr id="airseb">
+<h2 id="br7hb9r">Contribution Guidelines</h2>
+<p id="br7hb9r">To ensure consistency and quality, please adhere to the following guidelines:</p>
+<ul id="xy2n4rp">
+<li id="s3g8n4e"><strong>Follow</strong> the existing naming conventions and constraints.</li>
+<li id="rxh4q9f"><strong>Ensure</strong> backward compatibility when modifying tables.</li>
+<li id="kffwj7"><strong>Document</strong> any changes in the schema and update this README accordingly.</li>
+</ul>
+
 <p id="tepifvv">We would like to thank:</p>
 <ul id="agqq7">
 <li id="wiku4f">The <strong>Node.js</strong> and <strong>Express</strong> communities for their excellent documentation and support.</li>
